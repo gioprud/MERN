@@ -1,74 +1,66 @@
 import express from 'express';
 import { MongoClient } from 'mongodb';
+import { connectToDb, db } from './db.js';
 
 
 const app = express();
 app.use(express.json());
 
+function cop() {
+
+}
+
 // get array of project objects in mongodb
 app.get('/api/projects/:name', async (req, res) => {
     const { name } = req.params;
 
-    const client = await MongoClient.connect('mongodb://localhost:27017', { useUnifiedTopology: true });
-    const db = client.db('Portfolio');
+
 
     const project = await db.collection('Projects').findOne({ name });
 
-    if (project){
+    if (project) {
         res.json(project);
     } else {
         return res.status(404).send('Project not found');
     }
 
-    
+
 });
 
-// add new project to mongodb
-app.post('/api/projects/:projectID', async (req, res) => {
-    const { projectID } = req.params;
-    const { name, description, tech, image, github, live } = req.body;
+// add 1 upvote to selected project
+app.put('/api/projects/:name/upvote', async (req, res) => {
+    const { name } = req.params;
 
     const client = await MongoClient.connect('mongodb://localhost:27017', { useUnifiedTopology: true });
     const db = client.db('Portfolio');
 
-    const project = await db.collection('Projects').findOne({ projectID });
-
-    if (project){
-        return res.status(409).send('Project already exists');
-    }
-
-    const result = await db.collection('Projects').insertOne({ projectID, name, description, tech, image, github, live });
-    res.json(result.ops[0]);
-});
-
-
-
-// add 1 upvote to selected project
-app.put('/api/projects/:projectID/upvote', async (req, res) => {
-    const { projectID } = req.params;
-    const project = await db.collection('Projects').findOne({ projectID });
-
-    const db = client.db('Portfolio');
-    await db.collection('Projects').updateOne({ projectID }, {
-        '$inc': {
-            upvotes: 1,
-        },
+    await db.collection('Projects').updateOne({ name }, {
+        '$inc': { upvotes: 1 },
     });
+    const project = await db.collection('Projects').findOne({ name });
 
     //if project exists, add 1 upvote
     if (project) {
-        project.upvotes += 1;
-        res.send(`Project ${projectID} now has ${project.upvotes} upvotes!`);
+        res.send(`Project ${name} now has ${project.upvotes} upvotes!`);
     } else {
-        res.status(404).send(`Project ${projectID} does not exist.`);
+        res.status(404).send(`Project ${name} does not exist.`);
     }
 });
 
 // add comment to selected project
-app.post('/api/projects/:projectID/comments', (req, res) => {
-    const { projectID } = req.params;
+app.post('/api/projects/:name/comments', async (req, res) => {
+    const { name } = req.params;
     const { postedBy, text } = req.body;
-    const project = projectInfo.find((project) => project.name === projectID);
+
+    const client = await MongoClient.connect('mongodb://localhost:27017', { useUnifiedTopology: true });
+    const db = client.db('Portfolio');
+
+    await db.collection('Projects').updateOne({ name }, {
+        '$push': { comments: { postedBy, text } },
+    });
+
+    const project = await db.collection('Projects').findOne({ name });
+
     //if project exists, add comment
     if (project) {
         project.comments.push({ postedBy, text });
@@ -79,7 +71,11 @@ app.post('/api/projects/:projectID/comments', (req, res) => {
 });
 
 
+connectToDb(() => {
 
-app.listen(8000, () => {
-    console.log('Listening on port 8000');
+    console.log('Database connected');
+
+    app.listen(8000, () => {
+        console.log('Listening on port 8000');
     });
+});

@@ -41,7 +41,7 @@ app.put('/api/projects/:name/upvote', async (req, res) => {
 
     //if project exists, add 1 upvote
     if (project) {
-        res.send(`Project ${name} now has ${project.upvotes} upvotes!`);
+        res.json(project);
     } else {
         res.status(404).send(`Project ${name} does not exist.`);
     }
@@ -64,7 +64,7 @@ app.post('/api/projects/:name/comments', async (req, res) => {
     //if project exists, add comment
     if (project) {
         project.comments.push({ postedBy, text });
-        res.send(project.comments);
+        res.json(project);
     } else {
         res.status(404).send(`Project ${projectID} doesn't exist.`);
     }

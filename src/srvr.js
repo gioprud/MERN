@@ -1,7 +1,15 @@
 import express from 'express';
-import { MongoClient } from 'mongodb';
+import fs from 'fs';
+import admin from 'firebase-admin';
 import { connectToDb, db } from './db.js';
 
+//loading credentials from json file, normally don't syncronously read files
+const credentials = JSON.parse(fs.readFileSync('./credentials.json'));
+
+//initializing firebase admin
+admin.initializeApp({
+    credential: admin.credential.cert(credentials),
+});
 
 const app = express();
 app.use(express.json());
